@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Phone, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import OTPInput from "../forms/OTPInput";
 import CountryPopup from "../forms/CountryPopup";
+import PhoneLoginForm from "./PhoneLoginForm";
 import { parsePhoneNumberFromString, AsYouType, getExampleNumber } from "libphonenumber-js";
 import countryPhoneRules from "../../utils/countryPhoneRules";
 
-export default function PhoneLoginPopup({ onClose, onSendOTP, onVerifyOTP, onLogin }) {
+export default function PhoneLoginPopup({ onClose }) {
   const [step, setStep] = useState(1);
   const [countryCode, setCountryCode] = useState("+20");
   const [showCountryPopup, setShowCountryPopup] = useState(false);
@@ -19,6 +20,7 @@ export default function PhoneLoginPopup({ onClose, onSendOTP, onVerifyOTP, onLog
   const [placeholder, setPlaceholder] = useState("");
   const [resent, setResent] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
+  const [showLoginForm, setShowLoginForm] = useState(false);
 
   useEffect(() => {
     try {
@@ -68,7 +70,6 @@ export default function PhoneLoginPopup({ onClose, onSendOTP, onVerifyOTP, onLog
       setLoading(false);
       setStep(2);
       setResent(false);
-      onSendOTP?.(countryCode + phone);
     }, 1200);
   };
 
@@ -80,7 +81,6 @@ export default function PhoneLoginPopup({ onClose, onSendOTP, onVerifyOTP, onLog
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
-      onVerifyOTP?.(code);
       setTimeout(() => onClose(), 1500);
     }, 1200);
   };
@@ -91,9 +91,20 @@ export default function PhoneLoginPopup({ onClose, onSendOTP, onVerifyOTP, onLog
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      onSendOTP?.(countryCode + phone);
     }, 1200);
   };
+
+  if (showLoginForm) {
+    return (
+      <PhoneLoginForm
+        onClose={() => {
+          setShowLoginForm(false);
+          onClose?.();
+        }}
+        onSignup={() => setShowLoginForm(false)}
+      />
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -112,32 +123,41 @@ export default function PhoneLoginPopup({ onClose, onSendOTP, onVerifyOTP, onLog
           transition={{ duration: 0.3 }}
           className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100"
         >
-          {/* Back button */}
-          {step === 2 && (
-            <button
-              onClick={() => setStep(1)}
-              className="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition"
-              aria-label="Go back"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          )}
-
-          {/* Header */}
+          {/* ✅ Header (Fixed layout – no jumping on click) */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-800">
-              {step === 1 ? "Create an Account" : "Enter OTP Code"}
-            </h2>
+            {step === 2 ? (
+              <button
+                onClick={() => setStep(1)}
+                className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition duration-150 active:scale-95"
+              >
+                <ArrowLeft size={18} />
+                <span className="text-sm font-medium">Back</span>
+              </button>
+            ) : (
+              <div className="w-[60px]" /> // keeps spacing even
+            )}
 
-            <button
-              onClick={() => {
-                onLogin?.();
-                onClose?.();
-              }}
-              className="text-amber-600 hover:text-amber-500 text-sm font-medium transition"
+            <motion.h2
+              key={step}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="text-xl font-semibold text-gray-800 text-center flex-1"
             >
-              Login Now
-            </button>
+              {step === 1 ? "Create an Account" : "Enter OTP Code"}
+            </motion.h2>
+
+            {step === 1 ? (
+              <button
+                onClick={() => setShowLoginForm(true)}
+                className="text-amber-600 hover:text-amber-500 text-sm font-medium transition duration-150 active:scale-95"
+              >
+                Login Now
+              </button>
+            ) : (
+              <div className="w-[60px]" /> // keeps layout symmetric
+            )}
           </div>
 
           <AnimatePresence mode="wait">
@@ -269,7 +289,6 @@ export default function PhoneLoginPopup({ onClose, onSendOTP, onVerifyOTP, onLog
             )}
           </AnimatePresence>
 
-          {/* Country Popup */}
           <CountryPopup
             open={showCountryPopup}
             onClose={() => setShowCountryPopup(false)}
