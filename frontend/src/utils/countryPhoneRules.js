@@ -4,6 +4,8 @@
  * Used to validate and limit phone number input (Bybit-style).
  */
 
+import { parsePhoneNumberFromString } from "libphonenumber-js";
+
 const countryPhoneRules = {
   "+1": { name: "United States / Canada", min: 10, max: 10 },
   "+44": { name: "United Kingdom", min: 10, max: 10 },
@@ -40,17 +42,44 @@ const countryPhoneRules = {
 };
 
 /**
- * ✅ Validate phone number based on country rules
+ * ✅ Validate phone number based on country rules + libphonenumber-js
  * @param {string} countryCode - e.g. "+20"
  * @param {string} phoneNumber - digits only
  * @returns {boolean} - true if valid, false otherwise
  */
 export function validatePhoneNumber(countryCode, phoneNumber) {
+  // Check against min/max rules first (quick input check)
   const rule = countryPhoneRules[countryCode];
-  if (!rule) return phoneNumber.length > 4 && phoneNumber.length <= 15;
-  return (
-    phoneNumber.length >= rule.min && phoneNumber.length <= rule.max
-  );
+  if (rule) {
+    if (phoneNumber.length < rule.min || phoneNumber.length > rule.max) return false;
+  } else {
+    // fallback for unknown countries
+    if (phoneNumber.length < 4 || phoneNumber.length > 15) return false;
+  }
+
+  // Use libphonenumber-js for real validation
+  try {
+    const fullNumber = countryCode + phoneNumber;
+    const phone = parsePhoneNumberFromString(fullNumber);
+    return phone?.isValid() ?? false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ✨ Optional: format number nicely for display (E.164 -> national format)
+ * @param {string} countryCode
+ * @param {string} phoneNumber
+ * @returns {string} formatted phone number or raw if failed
+ */
+export function formatPhoneNumber(countryCode, phoneNumber) {
+  try {
+    const phone = parsePhoneNumberFromString(countryCode + phoneNumber);
+    return phone?.formatInternational() ?? countryCode + phoneNumber;
+  } catch {
+    return countryCode + phoneNumber;
+  }
 }
 
 export default countryPhoneRules;
