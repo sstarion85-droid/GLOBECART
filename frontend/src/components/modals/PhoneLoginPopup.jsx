@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; 
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
+import { Phone, CheckCircle2, Loader2, ArrowLeft, X, Eye, EyeOff, Lock } from "lucide-react";
 import OTPInput from "../forms/OTPInput";
 import CountryPopup from "../forms/CountryPopup";
 import PhoneLoginForm from "./PhoneLoginForm";
-import { parsePhoneNumberFromString, AsYouType, getExampleNumber } from "libphonenumber-js";
+import { parsePhoneNumberFromString, AsYouType } from "libphonenumber-js";
 import countryPhoneRules from "../../utils/countryPhoneRules";
+import PrimaryButton from "../ui/PrimaryButton";
 
 export default function PhoneLoginPopup({ onClose }) {
   const [step, setStep] = useState(1);
@@ -14,23 +15,18 @@ export default function PhoneLoginPopup({ onClose }) {
   const [phone, setPhone] = useState("");
   const [formattedPhone, setFormattedPhone] = useState("");
   const [otp, setOtp] = useState(Array(6).fill(""));
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [placeholder, setPlaceholder] = useState("");
   const [resent, setResent] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
   const [showLoginForm, setShowLoginForm] = useState(false);
 
-  useEffect(() => {
-    try {
-      const example = getExampleNumber(countryCode.replace("+", ""));
-      setPlaceholder(example ? example.formatNational() : "Enter phone number");
-    } catch {
-      setPlaceholder("Enter phone number");
-    }
-  }, [countryCode]);
-
+  // Resend OTP timer
   useEffect(() => {
     let timer;
     if (resent && resendTimer > 0) {
@@ -55,7 +51,7 @@ export default function PhoneLoginPopup({ onClose }) {
     const digits = value.replace(/\D/g, "");
     const maxLength = countryPhoneRules[countryCode]?.max || 15;
     const trimmed = digits.slice(0, maxLength);
-    const formatted = new AsYouType(countryCode.replace("+", "")).input(trimmed);
+    const formatted = new AsYouType().input(trimmed);
     setPhone(trimmed);
     setFormattedPhone(formatted);
     setError("");
@@ -65,6 +61,7 @@ export default function PhoneLoginPopup({ onClose }) {
     e.preventDefault();
     setError("");
     if (!isPhoneValid()) return setError("Please enter a valid phone number.");
+
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
@@ -76,12 +73,13 @@ export default function PhoneLoginPopup({ onClose }) {
   const handleVerifyOTP = (e) => {
     e.preventDefault();
     const code = otp.join("");
-    if (code.length !== otp.length) return setError("Please enter the full OTP.");
+    if (code.length !== otp.length)
+      return setError("Please enter the full OTP.");
+
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      setSuccess(true);
-      setTimeout(() => onClose(), 1500);
+      setStep(3); // move to password creation step
     }, 1200);
   };
 
@@ -89,8 +87,22 @@ export default function PhoneLoginPopup({ onClose }) {
     if (loading || resent) return;
     setResent(true);
     setLoading(true);
+    setTimeout(() => setLoading(false), 1200);
+  };
+
+  const handleCreatePassword = (e) => {
+    e.preventDefault();
+    setError("");
+    if (password.length < 6)
+      return setError("Password must be at least 6 characters long.");
+    if (password !== confirmPassword)
+      return setError("Passwords do not match.");
+
+    setLoading(true);
     setTimeout(() => {
       setLoading(false);
+      setSuccess(true);
+      setTimeout(() => onClose(), 1500);
     }, 1200);
   };
 
@@ -121,45 +133,51 @@ export default function PhoneLoginPopup({ onClose }) {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 40 }}
           transition={{ duration: 0.3 }}
-          className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100"
+          className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-xl border border-gray-100"
         >
-          {/* ✅ Header (Fixed layout – no jumping on click) */}
+          {/* Close Button */}
+          {step === 1 && !success && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition active:scale-90"
+            >
+              <X size={22} strokeWidth={2.5} />
+            </button>
+          )}
+
+          {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            {step === 2 ? (
+            {/* Hide back button for step 3 */}
+            {step > 1 && step !== 3 && !success ? (
               <button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(step - 1)}
                 className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition duration-150 active:scale-95"
               >
                 <ArrowLeft size={18} />
                 <span className="text-sm font-medium">Back</span>
               </button>
             ) : (
-              <div className="w-[60px]" /> // keeps spacing even
+              <div className="w-[60px]" />
             )}
 
             <motion.h2
               key={step}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
               className="text-xl font-semibold text-gray-800 text-center flex-1"
             >
-              {step === 1 ? "Create an Account" : "Enter OTP Code"}
+              {step === 1
+                ? "Create an Account"
+                : step === 2
+                ? "Verify OTP Code"
+                : "Create a Password"}
             </motion.h2>
 
-            {step === 1 ? (
-              <button
-                onClick={() => setShowLoginForm(true)}
-                className="text-amber-600 hover:text-amber-500 text-sm font-medium transition duration-150 active:scale-95"
-              >
-                Login Now
-              </button>
-            ) : (
-              <div className="w-[60px]" /> // keeps layout symmetric
-            )}
+            <div className="w-[60px]" />
           </div>
 
+          {/* Content */}
           <AnimatePresence mode="wait">
             {success ? (
               <motion.div
@@ -170,9 +188,12 @@ export default function PhoneLoginPopup({ onClose }) {
                 className="flex flex-col items-center text-green-600 space-y-3"
               >
                 <CheckCircle2 size={60} />
-                <p className="text-lg font-semibold">Verified Successfully!</p>
+                <p className="text-lg font-semibold">
+                  Account Created Successfully!
+                </p>
               </motion.div>
             ) : step === 1 ? (
+              // Step 1: Phone number
               <motion.form
                 key="form-step1"
                 onSubmit={handleSendOTP}
@@ -181,15 +202,14 @@ export default function PhoneLoginPopup({ onClose }) {
                 exit={{ opacity: 0 }}
                 className="space-y-5 mt-4"
               >
-                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-amber-500">
+                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-amber-500 transition">
                   <button
                     type="button"
                     onClick={() => setShowCountryPopup(true)}
                     className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-2 border-r border-gray-300 hover:bg-gray-200 transition"
                   >
-                    <span>{countryCode}</span>
+                    {countryCode}
                   </button>
-
                   <div className="relative flex-1">
                     <Phone
                       size={18}
@@ -199,8 +219,8 @@ export default function PhoneLoginPopup({ onClose }) {
                       type="tel"
                       value={formattedPhone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
-                      placeholder={placeholder}
-                      className="w-full pl-10 pr-4 py-2.5 outline-none bg-white text-gray-800"
+                      placeholder="Enter phone number"
+                      className="w-full pl-10 pr-4 py-2.5 outline-none bg-gray-50 text-gray-800 rounded-r-lg"
                       required
                     />
                   </div>
@@ -208,34 +228,32 @@ export default function PhoneLoginPopup({ onClose }) {
 
                 {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-                <button
+                <PrimaryButton
                   type="submit"
-                  disabled={loading || !isPhoneValid()}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-white transition-all ${
-                    loading || !isPhoneValid()
-                      ? "bg-amber-300 cursor-not-allowed"
-                      : "bg-amber-500 hover:bg-amber-600 shadow-md"
-                  }`}
+                  loading={loading}
+                  disabled={!isPhoneValid()}
+                  className="w-full py-2.5"
                 >
                   {loading ? (
                     <>
                       <Loader2 className="animate-spin" size={18} />
-                      Sending OTP...
+                      <span>Sending OTP...</span>
                     </>
                   ) : (
                     "Sign Up Now"
                   )}
-                </button>
+                </PrimaryButton>
 
                 <button
                   type="button"
-                  onClick={onClose}
-                  className="w-full py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+                  onClick={() => setShowLoginForm(true)}
+                  className="w-full py-2.5 rounded-lg border border-amber-500 text-amber-600 font-medium hover:bg-amber-50 transition"
                 >
-                  Cancel
+                  Login Instead
                 </button>
               </motion.form>
-            ) : (
+            ) : step === 2 ? (
+              // Step 2: OTP Verification
               <motion.form
                 key="form-step2"
                 onSubmit={handleVerifyOTP}
@@ -252,24 +270,21 @@ export default function PhoneLoginPopup({ onClose }) {
 
                 {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-                <button
+                <PrimaryButton
                   type="submit"
-                  disabled={loading || otp.join("").length !== otp.length}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-white transition-all ${
-                    loading
-                      ? "bg-amber-300 cursor-not-allowed"
-                      : "bg-amber-500 hover:bg-amber-600 shadow-md"
-                  }`}
+                  loading={loading}
+                  disabled={otp.join("").length !== otp.length}
+                  className="w-full py-2.5"
                 >
                   {loading ? (
                     <>
                       <Loader2 className="animate-spin" size={18} />
-                      Verifying...
+                      <span>Verifying...</span>
                     </>
                   ) : (
                     "Verify OTP"
                   )}
-                </button>
+                </PrimaryButton>
 
                 <div className="text-center">
                   <button
@@ -285,6 +300,73 @@ export default function PhoneLoginPopup({ onClose }) {
                     {resent ? `Resend OTP (${resendTimer}s)` : "Resend OTP"}
                   </button>
                 </div>
+              </motion.form>
+            ) : (
+              // Step 3: Create Password (no back button)
+              <motion.form
+                key="form-step3"
+                onSubmit={handleCreatePassword}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-5 mt-4"
+              >
+                <div className="relative">
+                  <Lock
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create password"
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-800 outline-none focus:ring-2 focus:ring-amber-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <Lock
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-800 outline-none focus:ring-2 focus:ring-amber-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((p) => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+
+                <PrimaryButton type="submit" loading={loading} className="w-full py-2.5">
+                  {loading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
+                </PrimaryButton>
               </motion.form>
             )}
           </AnimatePresence>

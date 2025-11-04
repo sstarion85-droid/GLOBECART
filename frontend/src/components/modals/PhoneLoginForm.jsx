@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, Lock, Loader2, CheckCircle2 } from "lucide-react";
+import { Phone, Lock, CheckCircle2 } from "lucide-react";
 import CountryPopup from "../forms/CountryPopup";
-import ForgetPassword from "../forms/ForgetPassword"; // ✅ import added
-import { AsYouType } from "libphonenumber-js";
+import ForgetPassword from "../forms/ForgetPassword";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 import countryPhoneRules from "../../utils/countryPhoneRules";
+import PrimaryButton from "../ui/PrimaryButton"; // shared button component
 
 export default function PhoneLoginForm({ onClose, onSignup }) {
   const [countryCode, setCountryCode] = useState("+20");
   const [showCountryPopup, setShowCountryPopup] = useState(false);
-  const [showForgetPassword, setShowForgetPassword] = useState(false); // ✅ new state
+  const [showForgetPassword, setShowForgetPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [formattedPhone, setFormattedPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -21,23 +22,36 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
     const digits = value.replace(/\D/g, "");
     const maxLength = countryPhoneRules[countryCode]?.max || 15;
     const trimmed = digits.slice(0, maxLength);
-    const formatted = new AsYouType(countryCode.replace("+", "")).input(trimmed);
+    const iso = countryPhoneRules[countryCode]?.iso || "EG";
+
+    const parsed = parsePhoneNumberFromString(trimmed, iso);
     setPhone(trimmed);
-    setFormattedPhone(formatted);
+    setFormattedPhone(parsed ? parsed.formatInternational() : trimmed);
     setError("");
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+
     if (!phone || !password) {
       setError("Please enter both phone and password.");
       return;
     }
+
+    const iso = countryPhoneRules[countryCode]?.iso || "EG";
+    const parsed = parsePhoneNumberFromString(phone, iso);
+    if (!parsed || !parsed.isValid()) {
+      setError("Invalid phone number.");
+      return;
+    }
+
     setLoading(true);
+    setError("");
+
+    // Simulate login
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
-      // simulate login success
       setTimeout(() => onClose(), 1500);
     }, 1200);
   };
@@ -46,7 +60,7 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
     <AnimatePresence>
       <motion.div
         key="phone-login-popup"
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -57,17 +71,16 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 40 }}
           transition={{ duration: 0.3 }}
-          className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100"
+          className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-xl border border-gray-100"
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-800">Login to Your Account</h2>
-            <button
-              onClick={onClose}
-              className="text-amber-600 hover:text-amber-500 text-sm font-medium transition"
-            >
-              Cancel
-            </button>
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-semibold text-gray-800">
+              Login to Your Account
+            </h2>
+            <p className="text-gray-500 mt-1 text-sm">
+              Enter your phone and password to continue
+            </p>
           </div>
 
           <AnimatePresence mode="wait">
@@ -92,15 +105,14 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
                 className="space-y-5 mt-4"
               >
                 {/* Phone Input */}
-                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-amber-500">
+                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-amber-500 transition">
                   <button
                     type="button"
                     onClick={() => setShowCountryPopup(true)}
                     className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-2 border-r border-gray-300 hover:bg-gray-200 transition"
                   >
-                    <span>{countryCode}</span>
+                    {countryCode}
                   </button>
-
                   <div className="relative flex-1">
                     <Phone
                       size={18}
@@ -110,15 +122,15 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
                       type="tel"
                       value={formattedPhone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
-                      placeholder="Enter phone number"
-                      className="w-full pl-10 pr-4 py-2.5 outline-none bg-white text-gray-800"
+                      placeholder="Phone number"
+                      className="w-full pl-10 pr-4 py-2.5 outline-none bg-gray-50 text-gray-800 rounded-r-lg"
                       required
                     />
                   </div>
                 </div>
 
                 {/* Password Input */}
-                <div className="relative border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-amber-500">
+                <div className="relative border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-amber-500 transition">
                   <Lock
                     size={18}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -127,33 +139,27 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
-                    className="w-full pl-10 pr-4 py-2.5 outline-none bg-white text-gray-800 rounded-lg"
+                    placeholder="Password"
+                    className="w-full pl-10 pr-4 py-2.5 outline-none bg-gray-50 text-gray-800 rounded-lg"
                     required
                   />
                 </div>
 
-                {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                {error && (
+                  <p className="text-sm text-red-500 text-center">{error}</p>
+                )}
 
-                <button
+                {/* Consistent Primary Button */}
+                <PrimaryButton
                   type="submit"
-                  disabled={loading}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-white transition-all ${
-                    loading
-                      ? "bg-amber-300 cursor-not-allowed"
-                      : "bg-amber-500 hover:bg-amber-600 shadow-md"
-                  }`}
+                  loading={loading}
+                  loadingText="Logging in..."
+                  disabled={!phone || !password}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Login"
-                  )}
-                </button>
+                  Login
+                </PrimaryButton>
 
+                {/* Footer Links */}
                 <div className="flex justify-between text-sm text-gray-600 mt-3">
                   <button
                     type="button"
@@ -164,8 +170,8 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowForgetPassword(true)} // ✅ show forgot password popup
-                    className="hover:underline text-amber-600"
+                    onClick={() => setShowForgetPassword(true)}
+                    className="text-amber-600 hover:underline"
                   >
                     Forgot Password?
                   </button>
@@ -174,7 +180,7 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
             )}
           </AnimatePresence>
 
-          {/* Country Popup */}
+          {/* Country Selector */}
           <CountryPopup
             open={showCountryPopup}
             onClose={() => setShowCountryPopup(false)}
@@ -182,7 +188,7 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
             onSelect={(code) => setCountryCode(code)}
           />
 
-          {/* ✅ Forgot Password Popup */}
+          {/* Forgot Password Popup */}
           {showForgetPassword && (
             <ForgetPassword
               onClose={() => setShowForgetPassword(false)}
