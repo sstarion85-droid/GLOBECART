@@ -7,7 +7,7 @@ export default function GoogleLoginButton() {
   const handleGoogleLogin = () => {
     setLoading(true);
     // Redirect user to backend Google OAuth route
-    window.location.href = "https://globecart.vercel.app/auth/google";
+    window.location.href = "http://localhost:5000/auth/google";
   };
 
   return (
