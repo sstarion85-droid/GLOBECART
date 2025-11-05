@@ -13,10 +13,10 @@ export default function HeroSection({ onLoginSuccess }) {
 
   const closePopup = () => setActivePopup(null);
 
-  // Handles login or guest access
+  // Handles successful login or guest access
   const handleLogin = () => {
     closePopup();
-    if (onLoginSuccess) onLoginSuccess();
+    if (onLoginSuccess) onLoginSuccess(); // ✅ sends user to HomePage
   };
 
   // Backdrop for popups
@@ -116,20 +116,13 @@ export default function HeroSection({ onLoginSuccess }) {
 
       {/* Popups */}
       {activePopup && <Backdrop onClick={closePopup} />}
-      {activePopup === "google" && (
-        <GoogleLoginPopup onClose={handleLogin} />
-      )}
-      {activePopup === "phone" && (
-        <PhoneLoginPopup onClose={closePopup} />
-      )}
+      {activePopup === "google" && <GoogleLoginPopup onClose={handleLogin} />}
+      {activePopup === "phone" && <PhoneLoginPopup onClose={closePopup} />}
       {activePopup === "email" && (
-        <EmailLoginPopup onClose={closePopup} />
+        <EmailLoginPopup onLoginSuccess={handleLogin} onClose={closePopup} />
       )}
       {activePopup === "guest" && (
-        <GuestAccessPopup
-          onConfirm={handleLogin}  // Proceed to homepage
-          onCancel={closePopup}     // Just close popup
-        />
+        <GuestAccessPopup onConfirm={handleLogin} onCancel={closePopup} />
       )}
     </section>
   );

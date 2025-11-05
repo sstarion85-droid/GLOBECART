@@ -17,7 +17,7 @@ function App() {
   }, []);
 
   return (
-    <div className="w-full h-screen overflow-x-hidden">
+    <div className="w-full h-screen overflow-x-hidden bg-white">
       {showIntro ? (
         <div className="flex items-center justify-center bg-[#01030a] w-full h-screen">
           <LogoIntro />

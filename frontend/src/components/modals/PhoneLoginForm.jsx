@@ -64,6 +64,7 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        onClick={onClose} // Close when clicking outside the card
       >
         <motion.div
           key="login-card"
@@ -72,6 +73,7 @@ export default function PhoneLoginForm({ onClose, onSignup }) {
           exit={{ scale: 0.9, opacity: 0, y: 40 }}
           transition={{ duration: 0.3 }}
           className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-xl border border-gray-100"
+          onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
         >
           {/* Header */}
           <div className="mb-6 text-center">

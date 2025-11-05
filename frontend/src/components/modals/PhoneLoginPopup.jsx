@@ -73,8 +73,7 @@ export default function PhoneLoginPopup({ onClose }) {
   const handleVerifyOTP = (e) => {
     e.preventDefault();
     const code = otp.join("");
-    if (code.length !== otp.length)
-      return setError("Please enter the full OTP.");
+    if (code.length !== otp.length) return setError("Please enter the full OTP.");
 
     setLoading(true);
     setTimeout(() => {
@@ -120,15 +119,18 @@ export default function PhoneLoginPopup({ onClose }) {
 
   return (
     <AnimatePresence>
+      {/* Backdrop with click-outside-to-close */}
       <motion.div
         key="phone-login-backdrop"
         className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        onClick={onClose} // Close when clicking outside
       >
         <motion.div
           key="phone-login-popup"
+          onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
           initial={{ scale: 0.9, opacity: 0, y: 40 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 40 }}
@@ -147,7 +149,6 @@ export default function PhoneLoginPopup({ onClose }) {
 
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            {/* Hide back button for step 3 */}
             {step > 1 && step !== 3 && !success ? (
               <button
                 onClick={() => setStep(step - 1)}
@@ -302,7 +303,7 @@ export default function PhoneLoginPopup({ onClose }) {
                 </div>
               </motion.form>
             ) : (
-              // Step 3: Create Password (no back button)
+              // Step 3: Create Password
               <motion.form
                 key="form-step3"
                 onSubmit={handleCreatePassword}
@@ -371,6 +372,7 @@ export default function PhoneLoginPopup({ onClose }) {
             )}
           </AnimatePresence>
 
+          {/* Country Popup */}
           <CountryPopup
             open={showCountryPopup}
             onClose={() => setShowCountryPopup(false)}
