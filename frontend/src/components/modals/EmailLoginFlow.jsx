@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEnvelope, FaLock } from "react-icons/fa";
 import { Loader2 } from "lucide-react";
+import EmailInput from "../forms/EmailInput";
+import PasswordInput from "../forms/PasswordInput"; // <- import PasswordInput
 
 export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -11,7 +13,6 @@ export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) 
   const [loading, setLoading] = useState(false);
   const [showReset, setShowReset] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/auth";
@@ -34,7 +35,6 @@ export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
@@ -50,7 +50,6 @@ export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) 
 
   const handlePasswordReset = async () => {
     if (!isValidEmail) return setError("Enter a valid email to reset password.");
-
     resetMessages();
     setLoading(true);
 
@@ -60,7 +59,6 @@ export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send reset email");
 
@@ -72,42 +70,6 @@ export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) 
       setLoading(false);
     }
   };
-
-  const InputWithLabel = ({
-    label,
-    type = "text",
-    value,
-    onChange,
-    showToggle,
-    showValue,
-    setShowValue,
-    autoFocus,
-  }) => (
-    <div className="relative w-full mb-3">
-      <input
-        type={showToggle && showValue ? "text" : type}
-        value={value}
-        onChange={onChange}
-        autoFocus={autoFocus}
-        placeholder=" "
-        className="peer w-full p-3 border border-gray-300/40 rounded-xl text-gray-900 bg-white/70 dark:bg-gray-800/70 placeholder-transparent focus:ring-2 focus:ring-orange-400 backdrop-blur-sm transition"
-      />
-      <label className="absolute left-3 top-3 text-gray-500 text-sm transition-all 
-                        peer-placeholder-shown:top-3 peer-placeholder-shown:text-gray-400 
-                        peer-placeholder-shown:text-base peer-focus:top-[-0.5rem] 
-                        peer-focus:text-orange-500 peer-focus:text-sm bg-white/70 dark:bg-gray-900/70 px-1">
-        {label}
-      </label>
-      {showToggle && (
-        <span
-          className="absolute right-3 top-3 text-gray-500 cursor-pointer"
-          onClick={() => setShowValue(!showValue)}
-        >
-          {showValue ? <FaEyeSlash /> : <FaEye />}
-        </span>
-      )}
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-50">
@@ -135,22 +97,24 @@ export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) 
                 Login to your account to continue
               </p>
 
-              <InputWithLabel
+              {/* EmailInput */}
+              <EmailInput
+                id="login-email"
+                name="email"
                 label="Email"
-                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
                 autoFocus
+                validateOnBlur
               />
 
-              <InputWithLabel
+              {/* PasswordInput */}
+              <PasswordInput
                 label="Password"
-                type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                showToggle
-                showValue={showPassword}
-                setShowValue={setShowPassword}
+                onChange={setPassword}
               />
 
               <button
@@ -206,11 +170,15 @@ export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) 
                 Enter your email and we’ll send you a reset link.
               </p>
 
-              <InputWithLabel
+              <EmailInput
+                id="reset-email"
+                name="email"
                 label="Email"
-                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+                validateOnBlur
               />
 
               {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
@@ -242,8 +210,6 @@ export default function EmailLoginFlow({ onClose, switchMode, onLoginSuccess }) 
               >
                 Back to Login
               </button>
-
-              {/* Cancel button removed here */}
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-import { FaEnvelope, FaCheckCircle, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEnvelope, FaCheckCircle, FaLock } from "react-icons/fa";
 import { Loader2 } from "lucide-react";
+import EmailInput from "../forms/EmailInput";
+import PasswordInput from "../forms/PasswordInput"; // <- Import advanced PasswordInput
 
 export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess }) {
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,16 +64,11 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
   };
 
   const handleCreateAccount = async () => {
-    if (!password || !confirmPassword) return setError("Both password fields are required");
-    if (password !== confirmPassword) return setError("Passwords do not match");
-    if (password.length < 6) return setError("Password must be at least 6 characters");
+    if (!password) return setError("Password is required");
     resetMessages();
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API_URL}/create-account`, {
-        email: email.trim(),
-        password,
-      });
+      const { data } = await axios.post(`${API_URL}/create-account`, { email: email.trim(), password });
       setMessage(data.message || "Account created successfully!");
       onLoginSuccess?.();
     } catch (err) {
@@ -93,7 +88,6 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
         className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-3xl p-8 w-[90%] max-w-md shadow-2xl text-center"
       >
         <AnimatePresence mode="wait">
-          {/* EMAIL STEP */}
           {step === "email" && (
             <motion.div
               key="email-step"
@@ -103,24 +97,16 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
               transition={{ duration: 0.3 }}
             >
               <FaEnvelope className="text-4xl text-orange-500 mx-auto mb-3" />
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                Sign Up
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
-                Continue with your email
-              </p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Sign Up</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">Continue with your email</p>
 
-              <div className="relative mb-3">
-                <FaEnvelope className="absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  className="w-full p-2.5 border rounded-xl text-gray-900 bg-white/70 dark:bg-gray-800/70 pl-10 outline-none placeholder-gray-400 focus:ring-2 focus:ring-orange-400"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoFocus
-                />
-              </div>
+              <EmailInput
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                onValid={(val) => setEmail(val)}
+                className="mb-3"
+              />
 
               {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
               {message && <p className="text-green-500 text-sm mb-2">{message}</p>}
@@ -129,9 +115,7 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
                 onClick={handleSendCode}
                 disabled={!isValidEmail || loading}
                 className={`w-full py-2.5 rounded-xl font-semibold mt-2 transition-all shadow-md ${
-                  !isValidEmail || loading
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-orange-500 text-white hover:bg-orange-600"
+                  !isValidEmail || loading ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-orange-500 text-white hover:bg-orange-600"
                 }`}
               >
                 {loading ? <Loader2 className="animate-spin w-4 h-4 mx-auto" /> : "Send Code"}
@@ -153,7 +137,6 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
             </motion.div>
           )}
 
-          {/* VERIFY STEP */}
           {step === "verify" && (
             <motion.div
               key="verify-step"
@@ -163,9 +146,7 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
               transition={{ duration: 0.3 }}
             >
               <FaCheckCircle className="text-4xl text-green-500 mx-auto mb-3" />
-              <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">
-                Verify Your Email
-              </h2>
+              <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">Verify Your Email</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 Enter the 6-digit code sent to <span className="font-semibold">{email}</span>.
               </p>
@@ -189,9 +170,7 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
                 onClick={handleVerify}
                 disabled={code.length !== 6 || loading}
                 className={`w-full py-2.5 rounded-xl font-semibold mt-2 transition-all shadow-md ${
-                  code.length === 6 && !loading
-                    ? "bg-black text-white hover:bg-gray-900"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  code.length === 6 && !loading ? "bg-black text-white hover:bg-gray-900" : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
                 {loading ? <Loader2 className="animate-spin w-4 h-4 mx-auto" /> : "Verify"}
@@ -215,7 +194,6 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
             </motion.div>
           )}
 
-          {/* PASSWORD STEP */}
           {step === "password" && (
             <motion.div
               key="password-step"
@@ -225,41 +203,14 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
               transition={{ duration: 0.3 }}
             >
               <FaLock className="text-4xl text-blue-500 mx-auto mb-3" />
-              <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">
-                Create Password
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Set a secure password for your account.
-              </p>
+              <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">Create Password</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Set a secure password for your account.</p>
 
-              <div className="relative mb-3">
-                <FaLock className="absolute left-3 top-3 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a strong password"
-                  className="w-full p-2.5 border rounded-xl text-gray-900 bg-white/70 dark:bg-gray-800/70 pl-10 outline-none placeholder-gray-400 focus:ring-2 focus:ring-blue-400"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoFocus
-                />
-                <span
-                  className="absolute right-3 top-3 text-gray-500 cursor-pointer"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
-              </div>
-
-              <div className="relative mb-3">
-                <FaLock className="absolute left-3 top-3 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Re-enter password"
-                  className="w-full p-2.5 border rounded-xl text-gray-900 bg-white/70 dark:bg-gray-800/70 pl-10 outline-none placeholder-gray-400 focus:ring-2 focus:ring-blue-400"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
+              <PasswordInput
+                label="Password"
+                value={password}
+                onChange={setPassword}
+              />
 
               {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
               {message && <p className="text-green-500 text-sm mb-2">{message}</p>}
@@ -268,9 +219,7 @@ export default function EmailSignupFlow({ onClose, switchMode, onLoginSuccess })
                 onClick={handleCreateAccount}
                 disabled={loading}
                 className={`w-full py-2.5 rounded-xl font-semibold mt-2 transition-all shadow-md ${
-                  loading
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-green-500 text-white hover:bg-green-600"
+                  loading ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-green-500 text-white hover:bg-green-600"
                 }`}
               >
                 {loading ? <Loader2 className="animate-spin w-4 h-4 mx-auto" /> : "Create Account"}
