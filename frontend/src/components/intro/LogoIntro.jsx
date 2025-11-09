@@ -9,7 +9,7 @@ function LogoIntro({ onFinish }) {
   }, [onFinish]);
 
   return (
-    <section className="h-screen w-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center text-center overflow-hidden">
+    <section className="h-screen w-screen bg-white flex items-center justify-center text-center overflow-hidden">
       <motion.img
         src={logo}
         alt="Globecart Logo"
